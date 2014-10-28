@@ -16,5 +16,9 @@ AssetLoader is a simple tool to load javascript & css files.
 ```
 * Install it via [composer](https://getcomposer.org/doc/00-intro.md)
 
+### Usage Example:
+
+Get a example from [test](https://github.com/nanjingboy/assetloader/tree/master/test)
+
 ### License:
 MIT
