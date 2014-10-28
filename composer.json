@@ -1,0 +1,24 @@
+{
+    "name": "nanjingboy/assetloader",
+    "type": "library",
+    "description": "A simple tool to load javascript & css files",
+    "keywords": ["javascript", "css", "load"],
+    "homepage": "https://github.com/nanjingboy/assetloader",
+    "license": "MIT",
+    "authors": [{
+        "name": "Tom Huang",
+        "email": "hzlhu.dargon@gmail.com"
+    }],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.*"
+    },
+    "config": {
+        "bin-dir": "bin/"
+    },
+    "autoload": {
+        "classmap": ["lib/"]
+    }
+}
