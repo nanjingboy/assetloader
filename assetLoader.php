@@ -1,13 +1,14 @@
 <?php
 class AssetLoader
 {
-    private static $_serverRootPath;
+    private static $_loadFiles;
 
-    private static $_jsDirectories = array();
-    private static $_cssDirectories = array();
+    private static $_serverRootPath;
+    private static $_jsDirectoryPath;
+    private static $_cssDirectoryPath;
 
     private static $_jsExtNames = array('.js', '.coffee');
-    private static $_cssExtNames = array('.css', '.scss');
+    private static $_cssExtNames = array('.css', '.scss', '.less');
 
     private static function _parseJsComment($comment)
     {
@@ -41,7 +42,10 @@ class AssetLoader
 
             $require = null;
             if (strpos($comment, 'require') === 0) {
-                $require = trim(str_replace('require', '', $comment));
+                $require = rtrim(
+                    trim(str_replace('require', '', $comment)),
+                    DIRECTORY_SEPARATOR
+                );
             }
 
             // As require comments must be in the top of one file,
@@ -74,67 +78,77 @@ class AssetLoader
         return null;
     }
 
-    private static function _parse($file, $type, $result)
+    private static function _parse($file, $type)
     {
         if ($type === 'js') {
-            $directories = self::$_jsDirectories;
-            $file = str_replace(self::$_jsExtNames, '', $file);
+            $extNames = self::$_jsExtNames;
+            $baseDir = self::$_jsDirectoryPath;
         } else {
-            $directories = self::$_cssDirectories;
-            $file = str_replace(self::$_cssExtNames, '', $file);
+            $extNames = self::$_cssExtNames;
+            $baseDir = self::$_cssDirectoryPath;
         }
 
-        foreach ($directories as $directory) {
-            $directory = $directory . DIRECTORY_SEPARATOR;
-            $filePath = self::_parseFilePath("{$directory}{$file}", $type);
-            if (!empty($filePath)) {
-                array_unshift($result, str_replace(self::$_serverRootPath, '', $filePath));
+        $filePath = self::_parseFilePath(
+            $baseDir . DIRECTORY_SEPARATOR . str_replace($extNames, '', $file),
+            $type
+        );
+
+        if ($filePath !== null) {
+            $fileRelativePath = str_replace(self::$_serverRootPath, '', $filePath);
+            if (in_array($fileRelativePath, self::$_loadFiles) === false) {
+                array_unshift(self::$_loadFiles, $fileRelativePath);
                 $requires = self::_parseRequires($filePath, $type);
                 foreach ($requires as $require) {
-                    $requirePath = "{$directory}{$require}";
+                    if (strpos($require, '/') === 0) {
+                        $requirePath = "{$baseDir}{$require}";
+                    } else {
+                        $requirePath = dirname($filePath) . DIRECTORY_SEPARATOR . $require;
+                    }
+
                     if (is_dir($requirePath)) {
                         $requireFiles = scandir($requirePath);
                         foreach ($requireFiles as $requireFile) {
                             if ($requireFile === '.' || $requireFile === '..') {
                                 continue;
                             }
-
                             $requireFilePath = $requirePath . DIRECTORY_SEPARATOR . $requireFile;
-                            if (is_dir($requireFile)) {
+                            if (is_dir($requireFilePath)) {
                                 continue;
                             }
-
-                            return self::_parse(
-                                ltrim(str_replace($directory, '', $requireFilePath), DIRECTORY_SEPARATOR),
-                                $type,
-                                $result
+                            self::_parse(
+                                ltrim(str_replace($baseDir, '', $requireFilePath), DIRECTORY_SEPARATOR),
+                                $type
                             );
                         }
                     } else {
-                        return self::_parse($require, $type, $result);
+                        self::_parse(ltrim($require, DIRECTORY_SEPARATOR), $type);
                     }
                 }
-                break;
             }
         }
-
-        return $result;
     }
 
-    public static function init($serverRootPath, $jsDirectories, $cssDirectories)
+    private static function _load($file, $type)
     {
-        self::$_serverRootPath = $serverRootPath;
-        self::$_jsDirectories = $jsDirectories;
-        self::$_cssDirectories = $cssDirectories;
+        self::$_loadFiles = array();
+        self::_parse($file, $type);
+        return self::$_loadFiles;
+    }
+
+    public static function init($serverRootPath, $jsDirectoryPath, $cssDirectoryPath)
+    {
+        self::$_serverRootPath = rtrim($serverRootPath, DIRECTORY_SEPARATOR);
+        self::$_jsDirectoryPath = rtrim($jsDirectoryPath, DIRECTORY_SEPARATOR);
+        self::$_cssDirectoryPath = rtrim($cssDirectoryPath, DIRECTORY_SEPARATOR);
     }
 
     public static function loadJs($file)
     {
-        return self::_parse($file, 'js', array());
+        return self::_load($file, 'js');
     }
 
     public static function loadCss($file)
     {
-        return self::_parse($file, 'css', array());
+        return self::_load($file, 'css');
     }
 }
