@@ -19,6 +19,6 @@
         "bin-dir": "bin/"
     },
     "autoload": {
-        "classmap": ["lib/"]
+        "files": ["assetLoader.php"]
     }
 }
