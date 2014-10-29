@@ -1,6 +1,8 @@
 <?php
 class AssetLoader
 {
+    private static $_serverRootPath;
+
     private static $_jsDirectories = array();
     private static $_cssDirectories = array();
 
@@ -86,7 +88,7 @@ class AssetLoader
             $directory = $directory . DIRECTORY_SEPARATOR;
             $filePath = self::_parseFilePath("{$directory}{$file}", $type);
             if (!empty($filePath)) {
-                array_unshift($result, str_replace($directory, '', $filePath));
+                array_unshift($result, str_replace(self::$_serverRootPath, '', $filePath));
                 $requires = self::_parseRequires($filePath, $type);
                 foreach ($requires as $require) {
                     $requirePath = "{$directory}{$require}";
@@ -119,8 +121,9 @@ class AssetLoader
         return $result;
     }
 
-    public static function init($jsDirectories, $cssDirectories)
+    public static function init($serverRootPath, $jsDirectories, $cssDirectories)
     {
+        self::$_serverRootPath = $serverRootPath;
         self::$_jsDirectories = $jsDirectories;
         self::$_cssDirectories = $cssDirectories;
     }

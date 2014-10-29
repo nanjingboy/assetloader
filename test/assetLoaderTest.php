@@ -5,9 +5,9 @@ class AssetLoaderTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             array(
-                'base/bootstrap.js',
-                'application.coffee',
-                'home.js'
+                '/assets/javascripts/base/bootstrap.js',
+                '/assets/javascripts/application.coffee',
+                '/assets/javascripts/home.js'
             ),
             AssetLoader::loadJs('home')
         );
@@ -17,9 +17,9 @@ class AssetLoaderTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             array(
-                'base/bootstrap.css',
-                'application.css',
-                'home.css'
+                '/assets/stylesheets/base/bootstrap.css',
+                '/assets/stylesheets/application.css',
+                '/assets/stylesheets/home.css'
             ),
             AssetLoader::loadCss('home')
         );
