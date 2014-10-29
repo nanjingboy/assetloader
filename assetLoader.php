@@ -7,7 +7,7 @@ class AssetLoader
     private static $_cssDirectories = array();
 
     private static $_jsExtNames = array('.js', '.coffee');
-    private static $_cssExtNames = array('.css');
+    private static $_cssExtNames = array('.css', '.scss');
 
     private static function _parseJsComment($comment)
     {
@@ -20,8 +20,8 @@ class AssetLoader
 
     private static function _parseCssComment($comment)
     {
-        if (preg_match('/^\/\*.*\*\/$/', $comment)) {
-            return trim(str_replace(array('/*', '*/'), '', $comment));
+        if (preg_match('/^\/\*.*\*\/$/', $comment) || strpos($comment, '//') === 0) {
+            return trim(str_replace(array('/*', '*/', '//'), '', $comment));
         }
 
         return null;
