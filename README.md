@@ -1,6 +1,6 @@
 ### AssetLoader:
 
-AssetLoader is a simple tool to load javascript & css files.
+AssetLoader is a simple library to load javascript & css files.
 
 ### Getting Started:
 
@@ -19,6 +19,11 @@ AssetLoader is a simple tool to load javascript & css files.
 ### Usage Example:
 
 Get a example from [test](https://github.com/nanjingboy/assetloader/tree/master/test)
+
+### Notes:
+
+* The require comments must on the top in a asset file.
+* It's just used to parse the load paths for asset's dependencies, it can't compile any files(e.g. a coffeeScript file).
 
 ### License:
 MIT
