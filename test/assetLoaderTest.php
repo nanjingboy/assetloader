@@ -6,7 +6,7 @@ class AssetLoaderTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(
             array(
                 'base/bootstrap.js',
-                'application.js',
+                'application.coffee',
                 'home.js'
             ),
             AssetLoader::loadJs('home')

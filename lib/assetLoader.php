@@ -4,28 +4,25 @@ class AssetLoader
     private static $_jsDirectories = array();
     private static $_cssDirectories = array();
 
-    private static function _parseJsRequire($comment)
+    private static $_jsExtNames = array('.js', '.coffee');
+    private static $_cssExtNames = array('.css');
+
+    private static function _parseJsComment($comment)
     {
-        $require = null;
-        if (strpos($comment, '//') === 0) {
-            $comment = trim(str_replace('//', '', $comment));
-            if (strpos($comment, 'require') === 0) {
-                $require = trim(str_replace('require', '', $comment));
-            }
+        if (strpos($comment, '//') === 0 || strpos($comment, '#') === 0) {
+            return trim(str_replace(array('//', '#'), '', $comment));
         }
-        return $require;
+
+        return null;
     }
 
-    private static function _parseCssRequire($comment)
+    private static function _parseCssComment($comment)
     {
-        $require = null;
         if (preg_match('/^\/\*.*\*\/$/', $comment)) {
-            $comment = trim(str_replace(array('/*', '*/'), '', $comment));
-            if (strpos($comment, 'require') === 0) {
-                $require = trim(str_replace('require', '', $comment));
-            }
+            return trim(str_replace(array('/*', '*/'), '', $comment));
         }
-        return $require;
+
+        return null;
     }
 
     private static function _parseRequires($filePath, $type)
@@ -35,9 +32,14 @@ class AssetLoader
         foreach ($lines as $line) {
             $line = trim($line);
             if ($type === 'js') {
-                $require = self::_parseJsRequire($line);
+                $comment = self::_parseJsComment($line);
             } else {
-                $require = self::_parseCssRequire($line);
+                $comment = self::_parseCssComment($line);
+            }
+
+            $require = null;
+            if (strpos($comment, 'require') === 0) {
+                $require = trim(str_replace('require', '', $comment));
             }
 
             // As require comments must be in the top of one file,
@@ -52,22 +54,42 @@ class AssetLoader
         return $requires;
     }
 
+    private static function _parseFilePath($file, $type)
+    {
+        if ($type === 'js') {
+            $extNames = self::$_jsExtNames;
+        } else {
+            $extNames = self::$_cssExtNames;
+        }
+
+        foreach ($extNames as $extName) {
+            $filePath = $file . $extName;
+            if (file_exists($filePath)) {
+                return $filePath;
+            }
+        }
+
+        return null;
+    }
+
     private static function _parse($file, $type, $result)
     {
-        $file = str_replace(".{$type}", '', $file) . '.' . $type;
         if ($type === 'js') {
             $directories = self::$_jsDirectories;
+            $file = str_replace(self::$_jsExtNames, '', $file);
         } else {
             $directories = self::$_cssDirectories;
+            $file = str_replace(self::$_cssExtNames, '', $file);
         }
 
         foreach ($directories as $directory) {
-            $filePath = $directory . DIRECTORY_SEPARATOR . $file;
-            if (file_exists($filePath)) {
-                array_unshift($result, $file);
+            $directory = $directory . DIRECTORY_SEPARATOR;
+            $filePath = self::_parseFilePath("{$directory}{$file}", $type);
+            if (!empty($filePath)) {
+                array_unshift($result, str_replace($directory, '', $filePath));
                 $requires = self::_parseRequires($filePath, $type);
                 foreach ($requires as $require) {
-                    $requirePath = $directory . DIRECTORY_SEPARATOR . $require;
+                    $requirePath = "{$directory}{$require}";
                     if (is_dir($requirePath)) {
                         $requireFiles = scandir($requirePath);
                         foreach ($requireFiles as $requireFile) {
@@ -79,11 +101,9 @@ class AssetLoader
                             if (is_dir($requireFile)) {
                                 continue;
                             }
+
                             return self::_parse(
-                                ltrim(
-                                    str_replace($directory, '', $requireFilePath),
-                                    DIRECTORY_SEPARATOR
-                                ),
+                                ltrim(str_replace($directory, '', $requireFilePath), DIRECTORY_SEPARATOR),
                                 $type,
                                 $result
                             );
