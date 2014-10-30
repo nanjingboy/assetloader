@@ -10,52 +10,53 @@ class AssetLoader
     private static $_jsExtNames = array('.js', '.coffee');
     private static $_cssExtNames = array('.css', '.scss', '.less');
 
-    private static function _parseJsComment($comment)
-    {
-        if (strpos($comment, '//') === 0 || strpos($comment, '#') === 0) {
-            return trim(str_replace(array('//', '#'), '', $comment));
-        }
-
-        return null;
-    }
-
-    private static function _parseCssComment($comment)
-    {
-        if (preg_match('/^\/\*.*\*\/$/', $comment) || strpos($comment, '//') === 0) {
-            return trim(str_replace(array('/*', '*/', '//'), '', $comment));
-        }
-
-        return null;
-    }
-
-    private static function _parseRequires($filePath, $type)
+    private static function _parseRequires($filePath)
     {
         $requires = array();
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {
             $line = trim($line);
-            if ($type === 'js') {
-                $comment = self::_parseJsComment($line);
-            } else {
-                $comment = self::_parseCssComment($line);
+            // Get require from comment which format like: // require application or # require application
+            $matches = array();
+            preg_match_all('/^(\/\/|#)\s*require\s+(.*)$/', $line, $matches);
+            if (!empty($matches[2][0])) {
+                array_push($requires, trim($matches[2][0]));
+                continue;
             }
 
-            $require = null;
-            if (strpos($comment, 'require') === 0) {
-                $require = rtrim(
-                    trim(str_replace('require', '', $comment)),
-                    DIRECTORY_SEPARATOR
-                );
+            // Get require from comment which format like: /* require application */
+            $matches = array();
+            preg_match_all('/^\/\*\s*require\s+(.*)\*\/$/', $line, $matches);
+            if (!empty($matches[1][0])) {
+                array_push($requires, trim($matches[1][0]));
+                continue;
             }
-
-            // As require comments must be in the top of one file,
-            // so if we get a null require, it means has no more requires in the file.
-            if ($require === null) {
-                return $requires;
-            }
-
-            array_push($requires, $require);
+            break;
         }
+
+        // Get requires from comment which format like below comment:
+        // /**
+        //  * require application
+        //  * require bootstrap
+        //  */
+        foreach ($lines as $index => $line) {
+            $line = trim($line);
+            if ($index === 0) {
+                if ($line === '/**') {
+                    continue;
+                }
+                break;
+            }
+
+            $matches = array();
+            preg_match_all('/^\*\s*require\s+(.*)$/', $line, $matches);
+            if (!empty($matches[1][0])) {
+                array_push($requires, trim($matches[1][0]));
+                continue;
+            }
+            break;
+        }
+
 
         return $requires;
     }
@@ -97,13 +98,14 @@ class AssetLoader
             $fileRelativePath = str_replace(self::$_serverRootPath, '', $filePath);
             if (in_array($fileRelativePath, self::$_loadFiles) === false) {
                 array_unshift(self::$_loadFiles, $fileRelativePath);
-                $requires = self::_parseRequires($filePath, $type);
+                $requires = self::_parseRequires($filePath);
                 foreach ($requires as $require) {
                     if (strpos($require, '/') === 0) {
                         $requirePath = "{$baseDir}{$require}";
                     } else {
                         $requirePath = dirname($filePath) . DIRECTORY_SEPARATOR . $require;
                     }
+                    $requirePath = realpath($requirePath);
 
                     if (is_dir($requirePath)) {
                         $requireFiles = scandir($requirePath);

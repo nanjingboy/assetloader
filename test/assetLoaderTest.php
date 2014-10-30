@@ -17,10 +17,10 @@ class AssetLoaderTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             array(
-                '/assets/stylesheets/application.scss',
                 '/assets/stylesheets/ui/bootstrap.scss',
                 '/assets/stylesheets/ui/global/menu.css',
                 '/assets/stylesheets/ui/base.less',
+                '/assets/stylesheets/application.css',
                 '/assets/stylesheets/home.css'
             ),
             AssetLoader::loadCss('home')
