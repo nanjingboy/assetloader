@@ -17,21 +17,24 @@ AssetLoader is a simple library to load javascript & css files.
 * Install it via [composer](https://getcomposer.org/doc/00-intro.md)
 
 ### Usage:
-We can use the require directive to load the dependencies, there are the formats for this directive below:
+We can use the require or require_dir directive to load the dependencies, there are the formats for this directive below:
 
 * CoffeeScript:
 ```coffeescript
 # require dependency
+# require_dir dependency_dir
 ```
 
 * JavaScript, Scss, Less:
 ```js
 // require dependency
+// require_dir dependency_dir
 ```
 
 * JavaScript, Css, Scss, Less(single line):
 ```js
 /* require dependency */
+/* require_dir dependency_dir */
 ```
 
 * JavaScript, Css, Scss, Less(multi line):
@@ -39,6 +42,7 @@ We can use the require directive to load the dependencies, there are the formats
 /**
  * require one_dependency
  * require two_dependency
+ * require_dir dependency_dir
  */
 ```
 
@@ -46,7 +50,7 @@ We can use the require directive to load the dependencies, there are the formats
 
 * The require comments must on the top in a asset file.
 * The dependency's path is relative with the root directory path of your javascripts or stylesheets.
-* If dependency is a directory, it will auto load all files in this directory(non-recursive).
+* The require_dir directive auto load all files in this directory without recursive.
 * It's just used to parse the load paths for asset's dependencies, it can't compile any files(e.g. a coffeeScript file).
 
 ### Example:
