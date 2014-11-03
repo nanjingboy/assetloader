@@ -7,6 +7,8 @@ class AssetLoader
     private static $_jsDirectoryPath;
     private static $_cssDirectoryPath;
 
+    private static $_defaultParent = 'a27c53f4c1769a5c89a91ba3a6855654';
+
     private static $_jsExtNames = array('.js', '.coffee');
     private static $_cssExtNames = array('.css', '.scss', '.less');
 
@@ -79,83 +81,116 @@ class AssetLoader
         return $requires;
     }
 
-    private static function _parseFilePath($file, $type)
+    private static function _parseFile($file, $type)
     {
         if ($type === 'js') {
             $extNames = self::$_jsExtNames;
+            $baseDir = self::$_jsDirectoryPath . DIRECTORY_SEPARATOR;
         } else {
             $extNames = self::$_cssExtNames;
+            $baseDir = self::$_cssDirectoryPath . DIRECTORY_SEPARATOR;
         }
+        $file = str_replace($extNames, '', $file);
 
+        $path = null;
         foreach ($extNames as $extName) {
-            $filePath = $file . $extName;
-            if (file_exists($filePath)) {
-                return $filePath;
+            $_path = "{$baseDir}{$file}{$extName}";
+            if (file_exists($_path)) {
+                $path = $_path;
+                break;
             }
         }
 
-        return null;
+        return array($baseDir, $path, str_replace(self::$_serverRootPath, '', $path));
     }
 
-    private static function _parse($file, $type)
+    private static function _isLoaded($path)
     {
-        if ($type === 'js') {
-            $extNames = self::$_jsExtNames;
-            $baseDir = self::$_jsDirectoryPath;
-        } else {
-            $extNames = self::$_cssExtNames;
-            $baseDir = self::$_cssDirectoryPath;
+        foreach (self::$_loadFiles as $loadFiles) {
+            if (in_array($path, $loadFiles)) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        $filePath = self::_parseFilePath(
-            $baseDir . DIRECTORY_SEPARATOR . str_replace($extNames, '', $file),
-            $type
-        );
+    private static function _parse($file, $type, $parent = null)
+    {
+        list($baseDir, $path, $relativePath) = self::_parseFile($file, $type);
 
-        if ($filePath !== null) {
-            $fileRelativePath = str_replace(self::$_serverRootPath, '', $filePath);
-            if (in_array($fileRelativePath, self::$_loadFiles) === false) {
-                array_unshift(self::$_loadFiles, $fileRelativePath);
-                $requires = self::_parseRequires($filePath);
-                foreach ($requires as $require) {
-                    $require['path'] = ltrim($require['path'], './');
-                    if ($require['isDirectory'] === false) {
-                        self::_parse(ltrim($require['path'], DIRECTORY_SEPARATOR), $type);
-                        continue;
-                    }
+        if ($path !== null && self::_isLoaded($relativePath) === false) {
+            if ($parent === null) {
+                $parent = self::$_defaultParent;
+            }
 
-                    if (strpos($require['path'], '/') === 0) {
-                        $dirPath = "{$baseDir}{$require['path']}";
-                    } else {
-                        $dirPath = dirname($filePath) . DIRECTORY_SEPARATOR . $require['path'];
-                    }
-                    $dirPath = realpath($dirPath);
-                    if (is_dir($dirPath)) {
-                        $files = scandir($dirPath);
-                        foreach ($files as $file) {
-                            if ($file === '.' || $file === '..') {
-                                continue;
-                            }
-                            $filePath = $dirPath . DIRECTORY_SEPARATOR . $file;
-                            if (is_dir($filePath)) {
-                                continue;
-                            }
-                            self::_parse(
-                                ltrim(str_replace($baseDir, '', $filePath), DIRECTORY_SEPARATOR),
-                                $type
-                            );
+            if (!array_key_exists($parent, self::$_loadFiles)) {
+                self::$_loadFiles[$parent] = array();
+            }
+
+            $requires = self::_parseRequires($path);
+            foreach ($requires as $require) {
+                $require['path'] = ltrim($require['path'], './');
+                if ($require['isDirectory'] === false) {
+                    self::_parse(
+                        ltrim($require['path'], DIRECTORY_SEPARATOR),
+                        $type,
+                        $parent
+                    );
+                    continue;
+                }
+
+                if (strpos($require['path'], '/') === 0) {
+                    $dirPath = "{$baseDir}{$require['path']}";
+                } else {
+                    $dirPath = dirname($path) . DIRECTORY_SEPARATOR . $require['path'];
+                }
+                $dirPath = realpath($dirPath);
+                $dirRelativePath = str_replace(self::$_serverRootPath, '', $dirPath);
+                if (is_dir($dirPath) && self::_isLoaded($dirRelativePath) === false) {
+                    array_push(self::$_loadFiles[$parent], $dirRelativePath);
+                    $requireFiles = scandir($dirPath);
+                    foreach ($requireFiles as $requireFile) {
+                        if ($requireFile === '.' || $requireFile === '..') {
+                            continue;
                         }
+
+                        $requireFilePath = $dirPath . DIRECTORY_SEPARATOR . $requireFile;
+                        if (is_dir($requireFilePath)) {
+                            continue;
+                        }
+
+                        self::_parse(
+                            ltrim(str_replace($baseDir, '', $requireFilePath), DIRECTORY_SEPARATOR),
+                            $type,
+                            $dirRelativePath
+                        );
                     }
                 }
             }
+            array_push(self::$_loadFiles[$parent], $relativePath);
         }
+    }
+
+    private static function _loadFiles($key)
+    {
+        $result = array();
+        if (!empty(self::$_loadFiles[$key])) {
+            foreach (self::$_loadFiles[$key] as $loadFile) {
+                if (!empty(self::$_loadFiles[$loadFile])) {
+                    $result = array_merge($result, self::_loadFiles($loadFile));
+                } else {
+                    array_push($result, $loadFile);
+                }
+            }
+        }
+        return $result;
     }
 
     private static function _load($file, $type)
     {
         self::$_loadFiles = array();
         self::_parse($file, $type);
-        return self::$_loadFiles;
+        return self::_loadFiles(self::$_defaultParent);
     }
 
     public static function init($serverRootPath, $jsDirectoryPath, $cssDirectoryPath)
@@ -167,6 +202,7 @@ class AssetLoader
 
     public static function loadJs($file)
     {
+
         return self::_load($file, 'js');
     }
 
