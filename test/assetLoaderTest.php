@@ -7,6 +7,7 @@ class AssetLoaderTest extends PHPUnit_Framework_TestCase
             array(
                 '/assets/javascripts/application.coffee',
                 '/assets/javascripts/base/bootstrap.js',
+                '/assets/javascripts/base.js',
                 '/assets/javascripts/home.js'
             ),
             AssetLoader::loadJs('home')

@@ -18,17 +18,30 @@ class AssetLoader
             $line = trim($line);
             // Get require from comment which format like: // require application or # require application
             $matches = array();
-            preg_match_all('/^(\/\/|#)\s*require\s+(.*)$/', $line, $matches);
-            if (!empty($matches[2][0])) {
-                array_push($requires, trim($matches[2][0]));
+            preg_match_all('/^(\/\/|#)\s*(require|require_dir)\s+(.*)$/', $line, $matches);
+
+            if (!empty($matches[2][0]) && !empty($matches[3][0])) {
+                array_push(
+                    $requires,
+                    array(
+                        'path' => trim($matches[3][0]),
+                        'isDirectory' => trim($matches[2][0]) === 'require_dir'
+                    )
+                );
                 continue;
             }
 
             // Get require from comment which format like: /* require application */
             $matches = array();
-            preg_match_all('/^\/\*\s*require\s+(.*)\*\/$/', $line, $matches);
-            if (!empty($matches[1][0])) {
-                array_push($requires, trim($matches[1][0]));
+            preg_match_all('/^\/\*\s*(require|require_dir)\s+(.*)\*\/$/', $line, $matches);
+            if (!empty($matches[1][0]) && !empty($matches[2][0])) {
+                array_push(
+                    $requires,
+                    array(
+                        'path' => trim($matches[2][0]),
+                        'isDirectory' => trim($matches[1][0]) === 'require_dir'
+                    )
+                );
                 continue;
             }
             break;
@@ -49,14 +62,19 @@ class AssetLoader
             }
 
             $matches = array();
-            preg_match_all('/^\*\s*require\s+(.*)$/', $line, $matches);
-            if (!empty($matches[1][0])) {
-                array_push($requires, trim($matches[1][0]));
+            preg_match_all('/^\*\s*(require|require_dir)\s+(.*)$/', $line, $matches);
+            if (!empty($matches[1][0]) && !empty($matches[2][0])) {
+                array_push(
+                    $requires,
+                    array(
+                        'path' => trim($matches[2][0]),
+                        'isDirectory' => trim($matches[1][0]) === 'require_dir'
+                    )
+                );
                 continue;
             }
             break;
         }
-
 
         return $requires;
     }
@@ -100,30 +118,33 @@ class AssetLoader
                 array_unshift(self::$_loadFiles, $fileRelativePath);
                 $requires = self::_parseRequires($filePath);
                 foreach ($requires as $require) {
-                    if (strpos($require, '/') === 0) {
-                        $requirePath = "{$baseDir}{$require}";
-                    } else {
-                        $requirePath = dirname($filePath) . DIRECTORY_SEPARATOR . $require;
+                    $require['path'] = ltrim($require['path'], './');
+                    if ($require['isDirectory'] === false) {
+                        self::_parse(ltrim($require['path'], DIRECTORY_SEPARATOR), $type);
+                        continue;
                     }
-                    $requirePath = realpath($requirePath);
 
-                    if (is_dir($requirePath)) {
-                        $requireFiles = scandir($requirePath);
-                        foreach ($requireFiles as $requireFile) {
-                            if ($requireFile === '.' || $requireFile === '..') {
+                    if (strpos($require['path'], '/') === 0) {
+                        $dirPath = "{$baseDir}{$require['path']}";
+                    } else {
+                        $dirPath = dirname($filePath) . DIRECTORY_SEPARATOR . $require['path'];
+                    }
+                    $dirPath = realpath($dirPath);
+                    if (is_dir($dirPath)) {
+                        $files = scandir($dirPath);
+                        foreach ($files as $file) {
+                            if ($file === '.' || $file === '..') {
                                 continue;
                             }
-                            $requireFilePath = $requirePath . DIRECTORY_SEPARATOR . $requireFile;
-                            if (is_dir($requireFilePath)) {
+                            $filePath = $dirPath . DIRECTORY_SEPARATOR . $file;
+                            if (is_dir($filePath)) {
                                 continue;
                             }
                             self::_parse(
-                                ltrim(str_replace($baseDir, '', $requireFilePath), DIRECTORY_SEPARATOR),
+                                ltrim(str_replace($baseDir, '', $filePath), DIRECTORY_SEPARATOR),
                                 $type
                             );
                         }
-                    } else {
-                        self::_parse(ltrim($require, DIRECTORY_SEPARATOR), $type);
                     }
                 }
             }

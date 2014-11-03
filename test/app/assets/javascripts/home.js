@@ -1,1 +1,4 @@
-// require base
+/**
+ * require ./base
+ * require_dir base
+ */
