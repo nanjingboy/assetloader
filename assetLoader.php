@@ -90,7 +90,15 @@ class AssetLoader
             $extNames = self::$_cssExtNames;
             $baseDir = self::$_cssDirectoryPath . DIRECTORY_SEPARATOR;
         }
-        $file = str_replace($extNames, '', $file);
+
+        $fileInfo = new SplFileInfo($file);
+        $filePath = $fileInfo->getPath();
+        $fileBaseName = $fileInfo->getBasename('.' . $fileInfo->getExtension());
+        if (empty($filePath)) {
+            $file = $fileBaseName;
+        } else {
+            $file = $filePath . DIRECTORY_SEPARATOR . $fileBaseName;
+        }
 
         $path = null;
         foreach ($extNames as $extName) {
@@ -202,7 +210,6 @@ class AssetLoader
 
     public static function loadJs($file)
     {
-
         return self::_load($file, 'js');
     }
 

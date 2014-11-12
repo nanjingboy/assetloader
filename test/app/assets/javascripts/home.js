@@ -1,4 +1,4 @@
 /**
  * require ./base
- * require_dir base
+ * require_dir bootstrap.js
  */
