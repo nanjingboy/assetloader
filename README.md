@@ -16,6 +16,14 @@ AssetLoader is a simple library to load javascript & css files.
 ```
 * Install it via [composer](https://getcomposer.org/doc/00-intro.md)
 
+* Init the config in your bootstrap.php:
+
+```php
+<?php
+require __DIR__ . '/vendor/autoload.php';
+AssetLoader::init($serverRootPath, $jsDirectoryPath, $cssDirectoryPath);
+```
+
 ### Usage:
 We can use the require or require_dir directive to load the dependencies, there are the formats for this directive below:
 
