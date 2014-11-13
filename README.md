@@ -16,6 +16,13 @@ AssetLoader is a simple library to load javascript & css files.
 ```
 * Install it via [composer](https://getcomposer.org/doc/00-intro.md)
 
+* Create directory in root directory of your application:
+
+```shell
+ $ mkdir tmp/assetLoader -p
+ $ chmod -R a+w tmp
+```
+
 * Init the config in your bootstrap.php:
 
 ```php
