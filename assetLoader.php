@@ -244,12 +244,15 @@ class AssetLoader
             return array();
         }
 
-        $cachedLoad = array();
         if (file_exists($cachedFile['path'])) {
             $cachedLoad = unserialize(file_get_contents($cachedFile['path']));
-        }
-        if (!empty($cachedLoad[$cachedFile['lastModified']])) {
-            $cachedLoad = $cachedLoad[$cachedFile['lastModified']];
+            if (!empty($cachedLoad[$cachedFile['lastModified']])) {
+                $cachedLoad = $cachedLoad[$cachedFile['lastModified']];
+            } else {
+                $cachedLoad = array();
+            }
+        } else {
+            $cachedLoad = array();
         }
 
         self::$_loadFiles = array();

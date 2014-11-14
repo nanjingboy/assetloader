@@ -1,3 +1,6 @@
+## 0.1.7 November 14, 2014
+* Fix cache error.
+
 ## 0.1.5 November 13, 2014
 * Cached parsed result.
 
